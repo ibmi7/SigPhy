@@ -34,9 +34,9 @@ struct spi_config spi_cfg = {
 
 uint8_t rx_buffer[27], tx_buffer[8];
 struct spi_buf tx_buf_arr = {.buf = tx_buffer, .len=sizeof(tx_buffer)};
-struct spi_buf_set tx = {.buffers = &tx_buffer, .count = 1};
+struct spi_buf_set tx = {.buffers = &tx_buf_arr, .count = 1};
 struct spi_buf rx_buf_arr = {.buf = rx_buffer, .len = sizeof(rx_buffer)};
-struct spi_buf_set rx  = {.buffers = &rx_buffer, .count = 1};
+struct spi_buf_set rx  = {.buffers = &rx_buf_arr, .count = 1};
 const struct device * dev;
 uint8_t sample_number = 0;
 
@@ -47,7 +47,7 @@ bool ADS1298_send_command(uint8_t command) {
 		return false;
 	}
 	tx_buffer[0] = command;
-
+	printk("TX : %d\n",tx_buffer[0]);
 	int err = spi_write(spi1_dev,&spi_cfg,&tx);
 	if(err < 0) {
 		printk("send command err: %d\r\n", err);
@@ -58,7 +58,6 @@ bool ADS1298_send_command(uint8_t command) {
 
 /* function de read bloquant */
 uint8_t ADS1298_read_data() {
-	while( gpio_pin_get(dev, DREADY_PIN) == 1 );
 	spi_read(spi1_dev,&spi_cfg,&rx);
 	return rx_buffer[0];
 }
@@ -177,44 +176,31 @@ void config_ADS1298()
 
 }
 
-#define PIN_RST 26
+#define RST_PIN DT_ALIAS(led1)
+static const struct gpio_dt_spec rst = GPIO_DT_SPEC_GET(RST_PIN, gpios);
 
 void reset_ADS1298()
 {
         int err = 0; 
-        static int ret0;
-        const struct device *dev0 = device_get_binding("GPIO_0");
-
-        if (dev0 == NULL ){
-                printk("Error: cannot find reset pin of SPI\n");
-                return;
-        }
+        int ret0;
         // configurer les pins avec les p�riph�riques, r�ussi si le retour est 0
-        ret0 = gpio_pin_configure(dev0, PIN_RST, GPIO_OUTPUT_ACTIVE);
-
-        gpio_pin_set(dev0, PIN_RST, 1);   
+        ret0 = gpio_pin_configure_dt(&rst, GPIO_OUTPUT_ACTIVE);
+        gpio_pin_set_dt(&rst, 1);
         k_usleep(10);  // wait 18 * TCLK = 18 * 514ns 
-        gpio_pin_set(dev0, PIN_RST, 0);
+        gpio_pin_set_dt(&rst, 0);
         k_msleep(500); 
-        gpio_pin_set(dev0, PIN_RST, 1);
+        gpio_pin_set_dt(&rst, 1);
         k_msleep(500);
 }
 
 
-
 void main(void)
 {
-	// get the GPIO device
-	dev = device_get_binding("DReady");
-	if (dev == NULL) {
-		printk("Error: didn't find GPIO device\n");
-		return;
-	}
 	// configure the LED pin as output
 	//gpio_pin_configure(dev, DREADY_PIN, GPIO_INPUT);
 	printk("ADS1298 DREADY pin configured\n");
  	reset_ADS1298();
-	/*printk("ADS1298 reset\n");
+	printk("ADS1298 reset\n");
 	k_usleep(9); // 18 * 514ns
 	int err = ADS1298_send_wakeup();
 	if (err == true){printk("ADS1298_send_wakeup success\n");}
@@ -234,18 +220,21 @@ void main(void)
 
 	// Configurer ADS1298
 	config_ADS1298 ();
+	// (Re)Lancer une  conversion: 
+	err = ADS1298_send_start();
+	k_usleep(350);  // 584*periode clk ads
+	ADS1298_send_read_continuous();
+	k_usleep(350);
 	while (true) {
-		// (Re)Lancer une  conversion: 
-		err = ADS1298_send_start();
-		k_usleep(350);  // 584*periode clk ads
-		
 		// envoyer opcode RDATA et recevoir les donn�es:
-		err = ADS1298_send_read_data();
+		/*err = ADS1298_send_read_data();
 		k_usleep(10);  // 8*TSCLK
+		ADS1298_receive_data();*/
 		ADS1298_receive_data();
 		for (int i = 0; i < 27; i++){
-			printk("%4x\n", rx_buffer[i]);
+			printk("RX : 0x%.2x\n", rx_buffer[i]);
 		}
-		k_usleep(110);
-	} */
+		k_usleep(110000);
+		k_sleep(K_MSEC(1000));
+	} 
 }
