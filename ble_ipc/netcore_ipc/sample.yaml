@@ -1,9 +1,0 @@
-sample:
-  name: BLE UART service
-  description: Bluetooth Low Energy UART service sample
-tests:
-  samples.bluetooth.peripheral_uart:
-    build_only: true
-    build_on_all: true
-    platform_allow: nrf5340dk_nrf5340_cpunet
-    tags: bluetooth ci_build
