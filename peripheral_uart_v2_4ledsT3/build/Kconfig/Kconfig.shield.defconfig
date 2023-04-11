@@ -1,0 +1,8 @@
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/blinky_pwm/boards/shields/*/Kconfig.defconfig"
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/blinky_pwm2/boards/shields/*/Kconfig.defconfig"
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/display/boards/shields/*/Kconfig.defconfig"
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/peripheral_uart/boards/shields/*/Kconfig.defconfig"
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/spi_bitbang/boards/shields/*/Kconfig.defconfig"
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/ipc_service/boards/shields/*/Kconfig.defconfig"
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/peripheral_uart_v2_4ledsT3/boards/shields/*/Kconfig.defconfig"
+osource "C:/ncs/v2.2.99-dev3/nrf/boards/shields/*/Kconfig.defconfig"

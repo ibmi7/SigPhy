@@ -1,0 +1,9 @@
+sample:
+  name: BLE Comprehensive example
+  description: secondary slot on external QSPI flash
+tests:
+  samples.bluetooth.peripheral_uart:
+    build_only: true
+    build_on_all: true
+    platform_allow: nrf5340dk_nrf5340_cpuapp nrf52840dk_nrf52840
+    tags: bluetooth ci_build

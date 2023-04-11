@@ -1,0 +1,6 @@
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/peripheral_uart/boards/shields/*/Kconfig.shield"
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/peripheral_uart_v2_4ledsT3/boards/shields/*/Kconfig.shield"
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/peripheral_uart_test/boards/shields/*/Kconfig.shield"
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/peripheral_uart_spi/boards/shields/*/Kconfig.shield"
+osource "c:/Users/cours/Documents/Cours/EISE4/SigPhy/Test/nrfx_ipc/ipc_service/boards/shields/*/Kconfig.shield"
+osource "C:/ncs/v2.2.99-dev3/nrf/boards/shields/*/Kconfig.shield"
