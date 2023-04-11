@@ -71,7 +71,6 @@ bool ADS1298_receive_data() {
     if(new_data_available) {
         new_data_available = false;
         state = processing_data;
-
         *data = ADS1298_convert_data();
        
         state = idle;
