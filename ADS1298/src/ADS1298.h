@@ -5,15 +5,6 @@
 #include <stdbool.h>
 
 
-#define SPI_INSTANCE 2
-
-
-#define PIN_SCK NRF_GPIO_PIN_MAP(0, 8)
-#define PIN_MOSI NRF_GPIO_PIN_MAP(0, 9)
-#define PIN_MISO NRF_GPIO_PIN_MAP(0, 24)
-#define PIN_CS NRF_GPIO_PIN_MAP(0, 2)
-
-#define PIN_DRDY NRF_GPIO_PIN_MAP(0, 7)
 
 #define COMMAND_WAKEUP 0x02
 #define COMMAND_STANDBY 0x04
@@ -246,49 +237,95 @@ bool ads1298_write_register(uint8_t reg, uint8_t val);
 
 uint8_t ads1298_read_register_kar(uint8_t reg);
 bool ADS1298_send_command(uint8_t command);
-bool ADS1298_init();
 bool ADS1298_send_start();
 bool ADS1298_send_stop();
 bool ADS1298_send_reset();
 bool ADS1298_send_wakeup();
 bool ADS1298_send_read_continuous();
 bool ADS1298_send_stop_read_continuous();
-bool ADS1298_poll_new_data();
-bool get_spi_busy();
 
-
-
-typedef struct ADS1298_data
+//-----------------------------------------------------------------------------------------------------------------
+enum ADS1x9x_Command_Values
 {
-    uint8_t lead_off_positive;
-    uint8_t lead_off_negative;
-    bool gpio_0;
-    bool gpio_1;
-    bool gpio_2;
-    bool gpio_3;
-    int32_t channgel_0;
-    int32_t channgel_1;
-    int32_t channgel_2;
-    int32_t channgel_3;
-    int32_t channgel_4;
-    int32_t channgel_5;
-    int32_t channgel_6;
-    int32_t channgel_7;
-} ADS1298_data_t;
+// System Commands                                                     //  ADS1x9x Command Definitions
+    WAKE_CONVERTER_FROM_SLEEP                           = 0x02,        //  WAKEUP
+    PLACE_CONVERTER_IN_SLEEP_MODE                       = 0x04,        //  SLEEP
+    RESET_CONVERTER                                     = 0x06,        //  RESET
+    START_RESTART_CONVERSION                            = 0x08,        //  START
+    STOP_CONVERSION                                     = 0x0A,        //  STOP
 
+// Cal Commands 
+    CALIBRATE_OFFSET_FOR_ALL_CHANNELS                   = 0x1A,        //  OFFCAL
 
-typedef struct data_8chs
+// Data Read Commands 
+    SET_READ_DATA_CONTINUOUSLY                          = 0x10,        //  RDATAC
+    STOP_READ_DATA_CONTINUOUSLY                         = 0x11,        //  SDATAC
+    READ_DATA_MANUALLY                                  = 0x12,        //  RDATA
+
+//  Register Read Commands
+    DEFAULT_READ_NUMBER_OF_REGISTERS                    = 0x21,
+    DEFAULT_WRITE_NUMBER_OF_REGISTERS                   = 0x41
+};
+
+//  Specific Register Read Commands
+enum Specific_Register_Read_Command_Type
 {
-    int32_t channel_1;
-    int32_t channel_2;
-    int32_t channel_3;
-    int32_t channel_4;
-    int32_t channel_5;
-    int32_t channel_6;
-    int32_t channel_7;
-    int32_t channel_8;
+//  Device Settings
+    READ_DEVICE_ID                                      = 0x20,
+// Glocal Settings Across Channels
+    READ_CONFIG_1_REGISTER                              = 0x21,
+    WRITE_CONFIG_1_REGISTER                             = 0x41,
+    READ_CONFIG_2_REGISTER                              = 0x22,
+    WRITE_CONFIG_2_REGISTER                             = 0x42,
+    READ_CONFIG_3_REGISTER                              = 0x23,
+    WRITE_CONFIG_3_REGISTER                             = 0x43,
+    READ_CONFIG_4_REGISTER                              = 0x37,
+    WRITE_CONFIG_4_REGISTER                             = 0x57,
+    READ_LEAD_OFF_CONTROL_REGISTER                      = 0x24,
+    WRITE_LEAD_OFF_CONTROL_REGISTER                     = 0x44,
+// Channel Specific Settings
+    READ_CHANNEL_1_SET_REGISTER                         = 0x25,
+    WRITE_CHANNEL_1_SET_REGISTER                        = 0x45,
+    READ_CHANNEL_2_SET_REGISTER                         = 0x26,
+    WRITE_CHANNEL_2_SET_REGISTER                        = 0x46,
+    READ_CHANNEL_3_SET_REGISTER                         = 0x27,
+    WRITE_CHANNEL_3_SET_REGISTER                        = 0x47,
+    READ_CHANNEL_4_SET_REGISTER                         = 0x28,
+    WRITE_CHANNEL_4_SET_REGISTER                        = 0x48,
+    READ_CHANNEL_5_SET_REGISTER                         = 0x29,
+    WRITE_CHANNEL_5_SET_REGISTER                        = 0x49,
+    READ_CHANNEL_6_SET_REGISTER                         = 0x2A,
+    WRITE_CHANNEL_6_SET_REGISTER                        = 0x4A,
+    READ_CHANNEL_7_SET_REGISTER                         = 0x2B,
+    WRITE_CHANNEL_7_SET_REGISTER                        = 0x4B,
+    READ_CHANNEL_8_SET_REGISTER                         = 0x2C,
+    WRITE_CHANNEL_8_SET_REGISTER                        = 0x4C,
 
-} data_8chs_t;
+    READ_RIGHT_LEG_DRIVE_SENSE_POSITIVE_REGISTER        = 0x2D,
+    WRITE_RIGHT_LEG_DRIVE_SENSE_POSITIVE_REGISTER       = 0x4D,
+    READ_RIGHT_LEG_DRIVE_SENSE_NEGATIVE_REGISTER        = 0x2E,
+    WRITE_RIGHT_LEG_DRIVE_SENSE_NEGATIVE_REGISTER       = 0x4E,
 
+    READ_LEAD_OFF_SENSE_POSITIVE_REGISTER               = 0x2F,
+    WRITE_LEAD_OFF_SENSE_POSITIVE_REGISTER              = 0x4F,
+    READ_LEAD_OFF_SENSE_NEGATIVE_REGISTER               = 0x30,
+    WRITE_LEAD_OFF_SENSE_NEGATIVE_REGISTER              = 0x50,
+
+    READ_LEAD_OFF_FLIP_REGISTER                         = 0x31,
+    WRITE_LEAD_OFF_FLIP_REGISTER                        = 0x51,
+// Lead Off Status Registers
+    READ_LEAD_OFF_STATUS_POSITIVE_REGISTER              = 0x32,
+    READ_LEAD_OFF_STATUS_NEGATIVE_REGISTER              = 0x33,
+// GPIO and OTHER Registers
+    READ_GENERAL_PORT_IO                                = 0x34,
+    WRITE_GENERAL_PORT_IO                               = 0x54,
+    READ_PACE_DETECT_REGISTER                           = 0x35,
+    WRITE_PACE_DETECT_REGISTER                          = 0x55,
+
+    READ_RESPIRATION_CONTROL_REGISTER                   = 0x36,
+    WRITE_RESPIRATION_CONTROL_REGISTER                  = 0x56,
+    READ_CONFIGURATION_CONTROL_REGISTER                 = 0x37,
+    WRITE_CONFIGURATION_CONTROL_REGISTER                = 0x57
+};
 
 #endif /* _ADS1298_H */
