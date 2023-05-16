@@ -1,0 +1,102 @@
+&pinctrl {
+	spi_master_default: spi_master_default {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 6)>,
+					<NRF_PSEL(SPIM_MOSI, 0, 7)>,
+					<NRF_PSEL(SPIM_MISO, 0, 25)>;
+		};
+	};
+
+	spi_master_sleep: spi_master_sleep {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 6)>,
+					<NRF_PSEL(SPIM_MOSI, 0, 7)>,
+					<NRF_PSEL(SPIM_MISO, 0, 25)>;
+			low-power-enable;
+		};
+	};
+};
+
+my_spi_master: &spi4 {
+	compatible = "nordic,nrf-spim";
+	status = "okay";
+	pinctrl-0 = <&spi_master_default>;
+	pinctrl-1 = <&spi_master_sleep>;
+	cs-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
+	reg_my_spi_master:  spi-dev-a@0 {
+		reg = <0>;
+	};
+};
+/ {
+	leds {
+		compatible = "gpio-leds";
+		mosfet1: led_0 {
+			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+			label = "MOSFET1";
+		};
+		mosfet2: led_1 {
+			gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+			label = "MOSFET2";
+		};
+		mosfet3: led_2 {
+			gpios = <&gpio1 12 GPIO_ACTIVE_HIGH>;
+			label = "MOSFET3";
+		};
+		mosfet4: led_3 {
+			gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+			label = "MOSFET4";
+		};
+	};
+};
+/* 
+ / {
+	leds {
+		compatible = "gpio-leds";
+		mosfet2: led_1 {
+			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+			label = "MOSFET2";
+		};
+	};
+};
+
+/ {
+	leds {
+		compatible = "gpio-leds";
+		mosfet3: led_0 {
+			gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+			label = "MOSFET3";
+		};
+	};
+};
+
+/ {
+	leds {
+		compatible = "gpio-leds";
+		mosfet4: led_2 {
+			gpios = <&gpio1 12 GPIO_ACTIVE_HIGH>;
+			label = "MOSFET4";
+		};
+	};
+};
+*/
+
+
+&adc {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1_6";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,input-positive = <NRF_SAADC_AIN0>; /* P0.03 */
+		zephyr,resolution = <12>;
+	};
+	status = "okay";
+};
+
+/ {
+	zephyr,user {
+		io-channels = <&adc 0>;
+	};
+};
