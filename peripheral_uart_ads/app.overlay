@@ -17,27 +17,27 @@ leds {
 		label = "LED EXTERNE 0";
                 };
         ledext1: led_ext1 {
-        	gpios = <&gpio1 10 GPIO_ACTIVE_LOW>; //d�finir le led externe 1 sur le P1.10
+        	gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>; //d�finir le led externe 1 sur le P1.10
         	label = "LED EXTERNE 1";
                 };
 
         ledext2: led_ext2 {
-        	gpios = <&gpio1 11 GPIO_ACTIVE_LOW>;
+        	gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
         	label = "LED EXTERNE 2";
                 };
 
         ledext3: led_ext3 {
-        	gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+        	gpios = <&gpio1 12 GPIO_ACTIVE_HIGH>;
         	label = "LED EXTERNE 3";
                 };
 
         ledext4: led_ext4 {
-        	gpios = <&gpio1 13 GPIO_ACTIVE_LOW>;
+        	gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
         	label = "LED EXTERNE 4";
                 };
 
         ledext5: led_ext5 {
-        	gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
+        	gpios = <&gpio1 14 GPIO_ACTIVE_HIGH>;
         	label = "LED EXTERNE 5";
                 };
 		pinpwdn: pin_pwdn {
@@ -88,7 +88,7 @@ leds {
 	spi_master_default: spi_master_default {
 		group1 {
 			psels = <NRF_PSEL(SPIM_SCK, 0, 6)>,
-					<NRF_PSEL(SPIM_MOSI, 0, 7)>,
+					<NRF_PSEL(SPIM_MOSI, 0, 5)>,
 					<NRF_PSEL(SPIM_MISO, 0, 25)>;
 		};
 	};
@@ -96,7 +96,7 @@ leds {
 	spi_master_sleep: spi_master_sleep {
 		group1 {
 			psels = <NRF_PSEL(SPIM_SCK, 0, 6)>,
-					<NRF_PSEL(SPIM_MOSI, 0, 7)>,
+					<NRF_PSEL(SPIM_MOSI, 0, 5)>,
 					<NRF_PSEL(SPIM_MISO, 0, 25)>;
 			low-power-enable;
 		};
