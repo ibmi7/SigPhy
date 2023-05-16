@@ -58,6 +58,8 @@ const static struct device *dev0, *dev1;
 #define LEDEXT0	DT_GPIO_LABEL(LEDEXT0_NODE, gpios)
 #define PIN0	DT_GPIO_PIN(LEDEXT0_NODE, gpios)
 #define FLAGS0	DT_GPIO_FLAGS(LEDETX0_NODE, gpios)
+K_MUTEX_DEFINE(my_mutex);
+int flagenvoi = 0;
 #else
 /* Sinon, une erreur de construction signifie que la carte n'est pas configur?e pour clignoter une LED.*/
 #error "Unsupported board: ledext0 devicetree alias is not defined"
@@ -749,7 +751,8 @@ void ble_write_thread(void)
 	/* Don't go any further until BLE is initialized */
 	k_sem_take(&ble_init_ok, K_FOREVER);
 
-	for (;;) {
+	for(;;) {
+		if(flag){
 		/* Wait indefinitely for data to be sent over bluetooth */
 		/* struct uart_data_t *buf = k_fifo_get(&fifo_uart_rx_data,
 						     K_FOREVER); */
@@ -761,9 +764,11 @@ void ble_write_thread(void)
 		if (bt_nus_send(NULL, buf, strlen(buf))) {
 			LOG_WRN("Failed to send data over BLE connection");
 		}
-		k_sleep(K_MSEC(1000));
-
+		k_mutex_lock(&my_mutex, K_FOREVER);
+		flagenvoi = 0 ;
+		k_mutex_unlock(&my_mutex);
 		//k_free(buf);
+		}
 	}
 }
 
@@ -859,6 +864,9 @@ void ads_thread(void){
 			err = ADS1298_send_read_data();
 			k_usleep(10);  // 8*TSCLK
 			ADS1298_receive_data();
+			k_mutex_lock(&my_mutex, K_FOREVER);
+			flagenvoi = 1;
+			k_mutex_unlock(&my_mutex);
 			k_usleep(110);
 
 			
