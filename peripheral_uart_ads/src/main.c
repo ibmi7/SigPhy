@@ -39,27 +39,37 @@
 #include <zephyr/drivers/counter.h>
 #include <zephyr/sys/printk.h>
 #include "ADS1298.c"
+#include <zephyr/sys/util.h>
 
 #define TIMER DT_NODELABEL(rtc0)
 
 static volatile bool flag = false;
 static volatile bool flag_run = false;
+int current_led = 1;
 
 const static struct device *dev0, *dev1;
 
 /* L'identifiant des noeuds de Devicetree pour l'alias "ledextn" n allant de 1 ? 4. */
 #define LEDEXT0_NODE DT_ALIAS(ledext0)
-#define LEDEXT1_NODE DT_ALIAS(ledext1)
-#define LEDEXT2_NODE DT_ALIAS(ledext2)
-#define LEDEXT3_NODE DT_ALIAS(ledext3)
-#define LEDEXT4_NODE DT_ALIAS(ledext4)
-#define LEDEXT5_NODE DT_ALIAS(ledext5)
+#define LEDEXT1_NODE DT_ALIAS(ledext1) //led0
+#define LEDEXT2_NODE DT_ALIAS(ledext2) //led1
+#define LEDEXT3_NODE DT_ALIAS(ledext3) //led2
+#define LEDEXT4_NODE DT_ALIAS(ledext4) 
+#define LEDEXT5_NODE DT_ALIAS(ledext5) //led3
+#define PIN4 DT_ALIAS(ledext1)
+#define PIN1 DT_ALIAS(ledext2)
+#define PIN2 DT_ALIAS(ledext3)
+#define PIN3 DT_ALIAS(ledext5)
 #if DT_NODE_HAS_STATUS(LEDEXT0_NODE, okay)
 #define LEDEXT0	DT_GPIO_LABEL(LEDEXT0_NODE, gpios)
 #define PIN0	DT_GPIO_PIN(LEDEXT0_NODE, gpios)
 #define FLAGS0	DT_GPIO_FLAGS(LEDETX0_NODE, gpios)
 K_MUTEX_DEFINE(my_mutex);
 int flagenvoi = 0;
+static const struct gpio_dt_spec mosfet1 = GPIO_DT_SPEC_GET(PIN4, gpios);
+static const struct gpio_dt_spec mosfet2 = GPIO_DT_SPEC_GET(PIN1, gpios);
+static const struct gpio_dt_spec mosfet3 = GPIO_DT_SPEC_GET(PIN2, gpios);
+static const struct gpio_dt_spec mosfet4 = GPIO_DT_SPEC_GET(PIN3, gpios);
 #else
 /* Sinon, une erreur de construction signifie que la carte n'est pas configur?e pour clignoter une LED.*/
 #error "Unsupported board: ledext0 devicetree alias is not defined"
@@ -107,7 +117,7 @@ void config_ADS1298()
 
         // GAIN_ONE = 0x10 pour fixer le gain de PGA � 1 ( PGA = amplificateur � gain programmable )
         ads1298_write_register(ADS129X_REG_CH1SET, GAIN_ONE);
-        ads1298_write_register(ADS129X_REG_CH2SET, TURN_OFF_CHANNEL);
+        ads1298_write_register(ADS129X_REG_CH2SET, GAIN_ONE);
         ads1298_write_register(ADS129X_REG_CH3SET, TURN_OFF_CHANNEL);
         ads1298_write_register(ADS129X_REG_CH4SET, TURN_OFF_CHANNEL);
 
@@ -692,6 +702,18 @@ void main(void)
 {
 	printk("IN MAIN printk\n");
 	LOG_INF("IN MAIN LOG_INF\n");
+	int retnirs1 = gpio_pin_configure_dt(&mosfet1, GPIO_OUTPUT_ACTIVE);
+	int retnirs2 = gpio_pin_configure_dt(&mosfet2, GPIO_OUTPUT_ACTIVE);
+	int retnirs3 = gpio_pin_configure_dt(&mosfet3, GPIO_OUTPUT_ACTIVE);
+	int retnirs4 = gpio_pin_configure_dt(&mosfet4, GPIO_OUTPUT_ACTIVE);
+	gpio_pin_set_dt(&mosfet1, 0);
+	k_sleep(K_MSEC(100));
+	gpio_pin_set_dt(&mosfet2, 0);
+	k_sleep(K_MSEC(100));
+	gpio_pin_set_dt(&mosfet3, 0);
+	k_sleep(K_MSEC(100));
+	gpio_pin_set_dt(&mosfet4, 0);
+	k_sleep(K_MSEC(10));
 	int blink_status = 0;
 	int err = 0;
 
@@ -752,22 +774,22 @@ void ble_write_thread(void)
 	k_sem_take(&ble_init_ok, K_FOREVER);
 
 	for(;;) {
-		if(flag){
-		/* Wait indefinitely for data to be sent over bluetooth */
-		/* struct uart_data_t *buf = k_fifo_get(&fifo_uart_rx_data,
-						     K_FOREVER); */
-		/* Send the data over BLE via the NUS service */
-		printk("ecg %d\n", (rx_buffer[3] << 16 | rx_buffer[4] << 8 | rx_buffer[5]));
-		printk("diode %d\n", (rx_buffer[6] << 16 | rx_buffer[7] << 8 | rx_buffer[8]));
-		char buf[50];
-		sprintf(buf, "ecg %d\nled %d\n", (rx_buffer[3] << 16 | rx_buffer[4] << 8 | rx_buffer[5]), (rx_buffer[6] << 16 | rx_buffer[7] << 8 | rx_buffer[8]));
-		if (bt_nus_send(NULL, buf, strlen(buf))) {
-			LOG_WRN("Failed to send data over BLE connection");
-		}
-		k_mutex_lock(&my_mutex, K_FOREVER);
-		flagenvoi = 0 ;
-		k_mutex_unlock(&my_mutex);
-		//k_free(buf);
+		if(flagenvoi){
+			/* Wait indefinitely for data to be sent over bluetooth */
+			/* struct uart_data_t *buf = k_fifo_get(&fifo_uart_rx_data,
+								K_FOREVER); */
+			/* Send the data over BLE via the NUS service */
+			printk("ecg %d\n", (rx_buffer[3] << 16 | rx_buffer[4] << 8 | rx_buffer[5]));
+			printk("diode %d\n", (rx_buffer[6] << 16 | rx_buffer[7] << 8 | rx_buffer[8]));
+			char buf[50];
+			sprintf(buf, "ecg %d\nled%d %d\n", (rx_buffer[3] << 16 | rx_buffer[4] << 8 | rx_buffer[5]),current_led, (rx_buffer[6] << 16 | rx_buffer[7] << 8 | rx_buffer[8]));
+			if (bt_nus_send(NULL, buf, strlen(buf))) {
+				LOG_WRN("Failed to send data over BLE connection");
+			}
+			k_mutex_lock(&my_mutex, K_FOREVER);
+			flagenvoi = 0 ;
+			k_mutex_unlock(&my_mutex);
+			//k_free(buf);
 		}
 	}
 }
@@ -787,6 +809,53 @@ void ads_thread(void){
 	return;
 	}
 	k_usleep(1000000);
+	///////////////////// NIRS ////////////////////////////////////////////
+	printk("OK2\n");
+
+	struct device * spi1_dev = DEVICE_DT_GET(MY_SPI_MASTER);
+	if(!device_is_ready(spi1_dev)) {
+		printk("SPI master device not ready!\n");
+	}
+	struct spi_cs_control spim_cs = {
+		.gpio = SPI_CS_GPIOS_DT_SPEC_GET(DT_NODELABEL(reg_my_spi_master)),
+		.delay = 0,
+	};
+
+    struct spi_config spi_cfg = {
+        .frequency = 2000000,
+        .operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB |
+				 SPI_MODE_CPOL | SPI_MODE_CPHA,
+		.slave = 0,
+		.cs = &spim_cs,
+    };
+	uint8_t   spi_tx_buf[2]; // spitx buffer
+	uint8_t   spi_rx_buf[1]; // spirx buffer
+	struct spi_buf tx_buf_arr = {.buf = spi_tx_buf, .len=sizeof(spi_tx_buf)};
+    struct spi_buf_set tx = {.buffers = &tx_buf_arr, .count = 1};
+	struct spi_buf rx_buf_arr = {.buf = spi_rx_buf, .len = sizeof(spi_rx_buf)};
+    struct spi_buf_set rx  = {.buffers = &rx_buf_arr, .count = 1};
+	
+	
+
+	spi_tx_buf[0] = 2;
+	spi_tx_buf[1] = 50;
+	spi_write(spi1_dev,&spi_cfg,&tx);
+	k_sleep(K_MSEC(10));
+	spi_tx_buf[0] = 1;
+	spi_tx_buf[1] = 50;
+	spi_write(spi1_dev,&spi_cfg,&tx);
+	k_sleep(K_MSEC(10));
+	spi_tx_buf[0] = 3;
+	spi_tx_buf[1] = 200;
+	spi_write(spi1_dev,&spi_cfg,&tx);
+	k_sleep(K_MSEC(10));
+	spi_tx_buf[0] = 0;
+	spi_tx_buf[1] = 50;
+	spi_write(spi1_dev,&spi_cfg,&tx);
+	k_sleep(K_MSEC(10));
+
+
+	///////////////////// NIRS ////////////////////////////////////////////
 	/************************Timer Interruption*****************************/
 	const struct device *counter_dev;
 	counter_dev = DEVICE_DT_GET(TIMER);
@@ -856,7 +925,11 @@ void ads_thread(void){
 			flag = false;
 			k_usleep(200);//ite marcher le led1 avec son �tat d�fini durant le temps d�fini
 
-			// (Re)Lancer une  conversion: 
+			// (Re)Lancer une  conversion:
+			current_led = 1; 
+			gpio_pin_set_dt(&mosfet3, 1);	//t1 en haut à gauche 
+			//k_sleep(K_MSEC(10));
+			k_usleep(350);
 			err = ADS1298_send_start();
 			k_usleep(350);  // 584*periode clk ads
 			
@@ -868,17 +941,72 @@ void ads_thread(void){
 			flagenvoi = 1;
 			k_mutex_unlock(&my_mutex);
 			k_usleep(110);
+			gpio_pin_set_dt(&mosfet3, 0);	//t1 en haut à gauche 
+			k_sleep(K_MSEC(2000)); 
 
+			k_usleep(200);//ite marcher le led1 avec son �tat d�fini durant le temps d�fini
+
+			// (Re)Lancer une  conversion: 
+			current_led = 2;
+			gpio_pin_set_dt(&mosfet2, 1);	//t1 en haut à gauche 
+			k_usleep(350);
+			err = ADS1298_send_start();
+			k_usleep(350);  // 584*periode clk ads
 			
-			//Extraire les donn�es de chaque channel � partir du beffer(rx_buffer)
-			//data = rxbuf2channels();
-			//printk("ecg %d\n", (rx_buffer[3] << 16 | rx_buffer[4] << 8 | rx_buffer[5]));
-			//printk("diode %d\n", (rx_buffer[6] << 16 | rx_buffer[7] << 8 | rx_buffer[8]));
-		}
-		k_sleep(K_MSEC(1000));
-	}
+			// envoyer opcode RDATA et recevoir les donn�es:
+			err = ADS1298_send_read_data();
+			k_usleep(10);  // 8*TSCLK
+			ADS1298_receive_data();
+			k_mutex_lock(&my_mutex, K_FOREVER);
+			flagenvoi = 1;
+			k_mutex_unlock(&my_mutex);
+			k_usleep(110);
+			gpio_pin_set_dt(&mosfet2, 0);	//t1 en haut à gauche 
+			k_sleep(K_MSEC(2000)); 
 
-	
+			k_usleep(200);//ite marcher le led1 avec son �tat d�fini durant le temps d�fini
+
+			// (Re)Lancer une  conversion: 
+			current_led = 3;
+			gpio_pin_set_dt(&mosfet4, 1);	//t1 en haut à gauche 
+			k_usleep(350);
+			err = ADS1298_send_start();
+			k_usleep(350);  // 584*periode clk ads
+			
+			// envoyer opcode RDATA et recevoir les donn�es:
+			err = ADS1298_send_read_data();
+			k_usleep(10);  // 8*TSCLK
+			ADS1298_receive_data();
+			k_mutex_lock(&my_mutex, K_FOREVER);
+			flagenvoi = 1;
+			k_mutex_unlock(&my_mutex);
+			k_usleep(110);
+			gpio_pin_set_dt(&mosfet4, 0);	//t1 en haut à gauche 
+			k_sleep(K_MSEC(2000)); 
+
+			k_usleep(200);//ite marcher le led1 avec son �tat d�fini durant le temps d�fini
+
+			// (Re)Lancer une  conversion: 
+			current_led = 4;
+			gpio_pin_set_dt(&mosfet1, 1);	//t1 en haut à gauche 
+			k_usleep(350);
+			err = ADS1298_send_start();
+			k_usleep(350);  // 584*periode clk ads
+			
+			// envoyer opcode RDATA et recevoir les donn�es:
+			err = ADS1298_send_read_data();
+			k_usleep(10);  // 8*TSCLK
+			ADS1298_receive_data();
+			k_mutex_lock(&my_mutex, K_FOREVER);
+			flagenvoi = 1;
+			k_mutex_unlock(&my_mutex);
+			k_usleep(110);
+			gpio_pin_set_dt(&mosfet1, 0);	//t1 en haut à gauche 
+			//k_sleep(K_MSEC(10)); 
+			k_sleep(K_MSEC(2000));
+			///////////////////////// NIRS ////////////////////////////////////
+		  }
+	}
 }
 
 K_THREAD_DEFINE(ble_write_thread_id, STACKSIZE, ble_write_thread, NULL, NULL,
